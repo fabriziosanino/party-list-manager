@@ -89,13 +89,13 @@ const GuestItem: React.FC<GuestItemProps> = ({
         <ViewShot
           ref={viewShotRef}
           options={{ format: 'png', quality: 1.0, result: 'tmpfile' }}
-          style={{ position: 'absolute', left: -9999, width: 300, height: 380, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', padding: 24, borderRadius: 20 }}
+          style={{ position: 'absolute', left: -9999, width: 300, height: 380, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', padding: 24, borderRadius: 20 }}
         >
-          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#222', marginBottom: 24, textAlign: 'center' }}>{guest.name}</Text>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.text.primary, marginBottom: 24, textAlign: 'center' }}>{guest.name}</Text>
           <QRCode
             value={guest.qrCode}
             size={200}
-            backgroundColor="#fff"
+            backgroundColor={colors.white}
           />
         </ViewShot>
 

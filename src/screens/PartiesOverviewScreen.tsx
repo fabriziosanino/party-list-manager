@@ -195,9 +195,9 @@ const PartiesOverviewScreen: React.FC<PartiesOverviewScreenProps> = ({
     <SafeAreaView style={globalStyles.container}>
       {/* Header */}
       <View style={globalStyles.header}>
-        <Text style={globalStyles.headerTitle}>🎉 Le Tue Feste</Text>
+        <Text style={globalStyles.headerTitle}>Party List Manager</Text>
         <Text style={styles.subtitle}>
-          Gestisci tutte le tue feste e consulta lo storico
+          Organizza e monitora i tuoi eventi in tempo reale
         </Text>
       </View>
 
@@ -254,24 +254,27 @@ const PartiesOverviewScreen: React.FC<PartiesOverviewScreenProps> = ({
       </View>
 
       {/* Parties List */}
-      {parties.length > 0 ? (
-        <FlatList
-          data={parties}
-          renderItem={renderPartyItem}
-          keyExtractor={(item) => item.id}
-          style={styles.partiesList}
-          contentContainerStyle={styles.partiesListContent}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <View style={styles.emptyState}>
-          <Ionicons name="calendar-outline" size={64} color={colors.gray[400]} />
-          <Text style={styles.emptyTitle}>Nessuna festa ancora</Text>
-          <Text style={styles.emptyText}>
+      <View style={[styles.partiesContainer, showCreateModal && styles.partiesContainerBlurred]}>
+        {parties.length > 0 ? (
+          <FlatList
+            data={parties}
+            renderItem={renderPartyItem}
+            keyExtractor={(item) => item.id}
+            style={styles.partiesList}
+            contentContainerStyle={styles.partiesListContent}
+            showsVerticalScrollIndicator={false}
+            scrollEnabled={!showCreateModal}
+          />
+        ) : (
+          <View style={styles.emptyState}>
+            <Ionicons name="calendar-outline" size={64} color={colors.gray[400]} />
+            <Text style={styles.emptyTitle}>Nessuna festa ancora</Text>
+            <Text style={styles.emptyText}>
             Crea la tua prima festa per iniziare a gestire gli ospiti
           </Text>
         </View>
-      )}
+        )}
+      </View>
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -451,6 +454,13 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  partiesContainer: {
+    flex: 1,
+  },
+  partiesContainerBlurred: {
+    opacity: 0,
+    pointerEvents: 'none',
   },
 });
 

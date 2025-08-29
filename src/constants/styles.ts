@@ -1,25 +1,62 @@
 import { StyleSheet } from 'react-native';
 
 export const colors = {
-  primary: '#7c3aed',
-  secondary: '#f59e0b',
-  success: '#10b981',
-  danger: '#ef4444',
-  warning: '#f59e0b',
+  // Nuova palette personalizzata (tonalità scure eleganti)
+  primary: '#AF9BB6',        // Lavanda chiaro - colore principale
+  primaryLight: '#84596B',   // Rosa-viola medio
+  secondary: '#603A40',      // Marrone-rosa scuro
+  accent: '#440D0F',         // Rosso molto scuro
+  tertiary: '#191716',       // Nero-grigio (il più scuro)
+  
+  // Colori funzionali usando la nuova palette
+  success: '#84596B',        // Rosa-viola per successo
+  danger: '#440D0F',         // Rosso molto scuro per errori
+  warning: '#603A40',        // Marrone-rosa per avvisi
+  info: '#AF9BB6',          // Lavanda per info
+  
+  // Scala di grigi personalizzata basata sulla palette
   gray: {
-    50: '#f9fafb',
-    100: '#f3f4f6',
-    200: '#e5e7eb',
-    300: '#d1d5db',
-    400: '#9ca3af',
-    500: '#6b7280',
-    600: '#4b5563',
-    700: '#374151',
-    800: '#1f2937',
-    900: '#111827',
+    50: '#ffffff',           // Bianco puro
+    100: '#f7f6f6',          // Bianco sporco con tinta rosa
+    200: '#ede9ea',          // Grigio chiarissimo con tinta rosa
+    300: '#d8d0d3',          // Grigio chiaro con tinta rosa
+    400: '#c4b5bb',          // Mix più chiaro della palette
+    500: '#AF9BB6',          // Lavanda chiaro (dalla palette)
+    600: '#84596B',          // Rosa-viola medio (dalla palette)
+    700: '#603A40',          // Marrone-rosa scuro (dalla palette)
+    800: '#440D0F',          // Rosso molto scuro (dalla palette)
+    900: '#2d0c0d',          // Versione più scura del rosso
+    950: '#191716',          // Nero-grigio (dalla palette)
   },
+  
+  // Colori base
   white: '#ffffff',
   black: '#000000',
+  
+  // Colori specifici per l'app
+  background: {
+    primary: '#f7f6f6',      // Sfondo principale (bianco con tinta rosa)
+    secondary: '#ffffff',    // Sfondo secondario (bianco puro)
+    card: '#ffffff',         // Sfondo delle card
+    header: '#191716',       // Sfondo header (nero-grigio)
+    footer: '#f7f6f6',       // Sfondo footer
+  },
+  
+  // Colori del testo ottimizzati per contrasto
+  text: {
+    primary: '#191716',      // Testo principale (nero-grigio)
+    secondary: '#440D0F',    // Testo secondario (rosso molto scuro)
+    muted: '#603A40',        // Testo disattivato (marrone-rosa)
+    inverse: '#ffffff',      // Testo su sfondo scuro (bianco)
+    accent: '#84596B',       // Testo di accento (rosa-viola)
+  },
+  
+  // Bordi
+  border: {
+    light: '#ede9ea',       // Bordi chiari (grigio con tinta rosa)
+    medium: '#d8d0d3',      // Bordi medi
+    dark: '#c4b5bb',        // Bordi scuri
+  },
 };
 
 export const spacing = {
@@ -85,14 +122,14 @@ export const shadows = {
 export const globalStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.gray[50],
+    backgroundColor: colors.background.primary,
   },
   safeArea: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.background.card,
   },
   header: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.background.header,
     paddingTop: spacing.lg,
     paddingBottom: spacing.xs,
     paddingHorizontal: spacing.lg,
@@ -102,7 +139,7 @@ export const globalStyles = StyleSheet.create({
   headerTitle: {
     fontSize: typography.sizes.xxl,
     fontWeight: typography.weights.bold,
-    color: colors.white,
+    color: colors.text.inverse,
     paddingTop: spacing.xl,
   },
   button: {
@@ -115,7 +152,7 @@ export const globalStyles = StyleSheet.create({
     gap: spacing.xs,
   },
   buttonText: {
-    color: colors.white,
+    color: colors.text.inverse,
     fontWeight: typography.weights.semibold,
     fontSize: typography.sizes.sm,
   },
@@ -124,29 +161,32 @@ export const globalStyles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.background.card,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
     ...shadows.md,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.gray[300],
+    borderColor: colors.border.medium,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     fontSize: typography.sizes.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.background.card,
+    color: colors.text.primary,
   },
   textPrimary: {
-    color: colors.gray[900],
+    color: colors.text.primary,
   },
   textSecondary: {
-    color: colors.gray[600],
+    color: colors.text.secondary,
   },
   textSuccess: {
     color: colors.success,
