@@ -12,6 +12,7 @@ const StatsCard: React.FC<StatsCardProps> = ({ guests }) => {
     total: guests.length,
     paid: guests.filter(g => g.paid).length,
     scanned: guests.filter(g => g.scanned).length,
+    unpaid: guests.filter(g => !g.paid).length,
   }), [guests]);
 
   const StatBox: React.FC<{
@@ -29,10 +30,10 @@ const StatsCard: React.FC<StatsCardProps> = ({ guests }) => {
   return (
     <View style={styles.container}>
       <StatBox
-        value={stats.total}
-        label="Totale Ospiti"
-        color={colors.primary}
-        backgroundColor={`${colors.primary}15`}
+        value={stats.unpaid}
+        label="Devono Pagare"
+        color={colors.danger}
+        backgroundColor={`${colors.danger}15`}
       />
       <StatBox
         value={stats.paid}

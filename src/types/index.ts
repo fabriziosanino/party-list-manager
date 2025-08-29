@@ -22,6 +22,7 @@ export interface GuestStats {
   total: number;
   paid: number;
   scanned: number;
+  unpaid: number;
 }
 
 export interface Party {

@@ -72,7 +72,7 @@ const GuestItem: React.FC<GuestItemProps> = ({
           <Ionicons
             name="cash"
             size={16}
-            color={guest.paid ? colors.success : colors.danger}
+            color={guest.paid ? '#22c55e' : '#ef4444'}
           />
         
         </TouchableOpacity>
@@ -168,14 +168,14 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   paidButtonActive: {
-    backgroundColor: `${colors.success}15`,
+    backgroundColor: '#22c55e30', // Verde con 30% opacità - più visibile
     borderWidth: 1,
-    borderColor: colors.success,
+    borderColor: '#22c55e', // Verde vivace
   },
   paidButtonInactive: {
-    backgroundColor: `${colors.danger}15`,
+    backgroundColor: '#ef444430', // Rosso con 30% opacità - più visibile
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: '#ef4444', // Rosso vivace
   },
   paidText: {
     fontSize: typography.sizes.xs,
