@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Guest } from '../types';
+import { Guest, Party } from '../types';
 
 const STORAGE_KEYS = {
   GUESTS: '@party_guests',
   APP_SETTINGS: '@app_settings',
   PARTY_CODE: '@party_code',
+  PARTIES: '@parties_list',
+  PARTY_GUESTS_PREFIX: '@party_guests_',
 } as const;
 
 /**
@@ -132,5 +134,118 @@ export const clearPartyCode = async (): Promise<void> => {
   } catch (error) {
     console.error('Errore nella cancellazione del codice festa:', error);
     throw new Error('Impossibile cancellare il codice festa');
+  }
+};
+
+// ========== MULTI-PARTY MANAGEMENT ==========
+
+/**
+ * Save a party to the parties list
+ */
+export const saveParty = async (party: Party): Promise<void> => {
+  try {
+    const parties = await loadAllParties();
+    const existingIndex = parties.findIndex(p => p.id === party.id);
+    
+    if (existingIndex >= 0) {
+      parties[existingIndex] = { ...party, lastModified: new Date().toISOString() };
+    } else {
+      parties.unshift(party);
+    }
+    
+    await AsyncStorage.setItem(STORAGE_KEYS.PARTIES, JSON.stringify(parties));
+  } catch (error) {
+    console.error('Errore nel salvataggio della festa:', error);
+    throw new Error('Impossibile salvare la festa');
+  }
+};
+
+/**
+ * Load all parties from AsyncStorage
+ */
+export const loadAllParties = async (): Promise<Party[]> => {
+  try {
+    const jsonData = await AsyncStorage.getItem(STORAGE_KEYS.PARTIES);
+    if (jsonData === null) {
+      return [];
+    }
+    return JSON.parse(jsonData);
+  } catch (error) {
+    console.error('Errore nel caricamento delle feste:', error);
+    return [];
+  }
+};
+
+/**
+ * Delete a party and all its associated data
+ */
+export const deleteParty = async (partyId: string): Promise<void> => {
+  try {
+    // Remove party from parties list
+    const parties = await loadAllParties();
+    const updatedParties = parties.filter(p => p.id !== partyId);
+    await AsyncStorage.setItem(STORAGE_KEYS.PARTIES, JSON.stringify(updatedParties));
+    
+    // Remove party guests data
+    await AsyncStorage.removeItem(`${STORAGE_KEYS.PARTY_GUESTS_PREFIX}${partyId}`);
+  } catch (error) {
+    console.error('Errore nella cancellazione della festa:', error);
+    throw new Error('Impossibile cancellare la festa');
+  }
+};
+
+/**
+ * Save guests for a specific party
+ */
+export const savePartyGuests = async (partyId: string, guests: Guest[]): Promise<void> => {
+  try {
+    const jsonData = JSON.stringify(guests);
+    await AsyncStorage.setItem(`${STORAGE_KEYS.PARTY_GUESTS_PREFIX}${partyId}`, jsonData);
+    
+    // Update party stats
+    await updatePartyStats(partyId, guests);
+  } catch (error) {
+    console.error('Errore nel salvataggio degli ospiti della festa:', error);
+    throw new Error('Impossibile salvare i dati degli ospiti');
+  }
+};
+
+/**
+ * Load guests for a specific party
+ */
+export const loadPartyGuests = async (partyId: string): Promise<Guest[]> => {
+  try {
+    const jsonData = await AsyncStorage.getItem(`${STORAGE_KEYS.PARTY_GUESTS_PREFIX}${partyId}`);
+    if (jsonData === null) {
+      return [];
+    }
+    return JSON.parse(jsonData);
+  } catch (error) {
+    console.error('Errore nel caricamento degli ospiti della festa:', error);
+    return [];
+  }
+};
+
+/**
+ * Update party statistics based on guests data
+ */
+export const updatePartyStats = async (partyId: string, guests: Guest[]): Promise<void> => {
+  try {
+    const parties = await loadAllParties();
+    const partyIndex = parties.findIndex(p => p.id === partyId);
+    
+    if (partyIndex >= 0) {
+      parties[partyIndex] = {
+        ...parties[partyIndex],
+        guestCount: guests.length,
+        paidCount: guests.filter(g => g.paid).length,
+        scannedCount: guests.filter(g => g.scanned).length,
+        lastModified: new Date().toISOString(),
+      };
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.PARTIES, JSON.stringify(parties));
+    }
+  } catch (error) {
+    console.error('Errore nell\'aggiornamento delle statistiche della festa:', error);
   }
 };

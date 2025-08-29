@@ -9,11 +9,18 @@ import {
   Alert,
   SafeAreaView,
   TextInput,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Guest, NewGuest, ScanResult } from '../types';
+import { Guest, NewGuest, ScanResult, Party } from '../types';
 import { generateQRCode } from '../utils/qrCodeGenerator';
-import { saveGuests, loadGuests, clearAllGuests, savePartyCode, loadPartyCode, clearPartyCode } from '../utils/storage';
+import { 
+  savePartyGuests, 
+  loadPartyGuests, 
+  saveParty,
+  updatePartyStats 
+} from '../utils/storage';
 import { uploadGuestsFile, exportQRCodes, exportPartyReport } from '../utils/fileHandler';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
@@ -23,21 +30,51 @@ import StatsCard from '../components/StatsCard';
 import GuestList from '../components/GuestList';
 import AddGuestModal from '../components/AddGuestModal';
 import Scanner from '../components/Scanner';
-import PartyCodeModal from '../components/PartyCodeModal';
 
 import { colors, spacing, typography, borderRadius, globalStyles } from '../constants/styles';
 
-const HomeScreen: React.FC = () => {
+interface HomeScreenProps {
+  party: Party;
+  onBackToParties: () => void;
+}
+
+const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [partyCode, setPartyCode] = useState<string | null>(null);
-  const [showPartyCodeModal, setShowPartyCodeModal] = useState(false);
-  const [partyCodeInitialized, setPartyCodeInitialized] = useState(false);
   const qrViewShotRefs = useRef<{ [key: number]: ViewShot | null }>({});
+
+  // Swipe gesture configuration
+  const screenWidth = Dimensions.get('window').width;
+  const swipeThreshold = screenWidth * 0.3; // 30% of screen width
+  
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Only respond to horizontal swipes from the left edge
+        const { dx, dy } = gestureState;
+        const isHorizontalSwipe = Math.abs(dx) > Math.abs(dy);
+        const isFromLeftEdge = evt.nativeEvent.pageX < 50; // Start from left 50px
+        const isSwipeRight = dx > 10;
+        
+        return isHorizontalSwipe && isFromLeftEdge && isSwipeRight;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        // Optional: Add visual feedback here if needed
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        const { dx } = gestureState;
+        
+        // If swipe distance exceeds threshold, go back
+        if (dx > swipeThreshold) {
+          onBackToParties();
+        }
+      },
+    })
+  ).current;
 
   // Load data on component mount
   useEffect(() => {
@@ -53,24 +90,7 @@ const HomeScreen: React.FC = () => {
 
   const loadData = async () => {
     try {
-      // Prima carica il codice festa
-      const savedPartyCode = await loadPartyCode();
-      
-      if (!savedPartyCode) {
-        // Se non c'è un codice festa, mostra il modal una sola volta
-        if (!partyCodeInitialized) {
-          setShowPartyCodeModal(true);
-          setPartyCodeInitialized(true);
-        }
-        setIsInitialLoad(false);
-        return;
-      }
-      
-      setPartyCode(savedPartyCode);
-      setPartyCodeInitialized(true);
-      
-      // Poi carica gli ospiti
-      const savedGuests = await loadGuests();
+      const savedGuests = await loadPartyGuests(party.id);
       setGuests(savedGuests);
       setIsInitialLoad(false);
     } catch (error) {
@@ -81,7 +101,7 @@ const HomeScreen: React.FC = () => {
 
   const saveData = async () => {
     try {
-      await saveGuests(guests);
+      await savePartyGuests(party.id, guests);
     } catch (error) {
       console.error('Errore nel salvataggio dei dati:', error);
     }
@@ -115,11 +135,6 @@ const HomeScreen: React.FC = () => {
   };
 
   const handleAddGuest = (newGuest: NewGuest) => {
-    if (!partyCode) {
-      Alert.alert('Errore', 'Codice festa mancante');
-      return;
-    }
-
     const guest: Guest = {
       id: Date.now(),
       name: newGuest.name,
@@ -132,40 +147,10 @@ const HomeScreen: React.FC = () => {
     guest.qrCode = generateQRCode({ 
       id: guest.id, 
       name: guest.name, 
-      partyCode: partyCode 
+      partyCode: party.code 
     });
     
     setGuests(prev => [...prev, guest]);
-  };
-
-  const handlePartyCodeConfirm = async (code: string) => {
-    try {
-      await savePartyCode(code);
-      setPartyCode(code);
-      setShowPartyCodeModal(false);
-      
-      Alert.alert(
-        'Codice Festa Salvato!', 
-        `Festa: ${code}\n\nOra puoi iniziare ad aggiungere ospiti.`,
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      Alert.alert('Errore', 'Impossibile salvare il codice festa');
-    }
-  };
-
-  const handlePartyCodeCancel = () => {
-    setShowPartyCodeModal(false);
-    Alert.alert(
-      'Codice Festa Richiesto',
-      'Per utilizzare l\'app devi inserire un codice festa.',
-      [
-        { 
-          text: 'Inserisci Codice', 
-          onPress: () => setShowPartyCodeModal(true) 
-        }
-      ]
-    );
   };
 
   const handleTogglePaid = (id: number) => {
@@ -198,10 +183,31 @@ const HomeScreen: React.FC = () => {
     setGuests(prev => prev.filter(guest => guest.id !== id));
   };
 
-  // Funzione per filtrare gli ospiti in base alla ricerca
-  const filteredGuests = guests.filter(guest => 
-    guest.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Funzione per filtrare e ordinare gli ospiti
+  const filteredGuests = guests
+    .filter(guest => 
+      guest.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Prima separare scansionati da non scansionati
+      if (a.scanned && !b.scanned) return 1; // a scansionato va dopo
+      if (!a.scanned && b.scanned) return -1; // a non scansionato va prima
+      
+      if (a.scanned && b.scanned) {
+        // Entrambi scansionati: ordine per data di scansione decrescente (più recenti prima)
+        if (!a.scanTime && !b.scanTime) return 0;
+        if (!a.scanTime) return 1;
+        if (!b.scanTime) return -1;
+        
+        // Confronta le date di scansione
+        const dateA = new Date(a.scanTime.split(', ').reverse().join(' '));
+        const dateB = new Date(b.scanTime.split(', ').reverse().join(' '));
+        return dateB.getTime() - dateA.getTime(); // Decrescente
+      }
+      
+      // Entrambi non scansionati: ordine alfabetico per nome
+      return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+    });
 
   const handleExportQRCodes = async () => {
     if (guests.length === 0) {
@@ -273,23 +279,15 @@ const HomeScreen: React.FC = () => {
 
     Alert.alert(
       'Attenzione!',
-      'Vuoi cancellare TUTTI i dati? Questa operazione non può essere annullata.',
+      'Vuoi cancellare TUTTI gli ospiti di questa festa? Questa operazione non può essere annullata.',
       [
         { text: 'Annulla', style: 'cancel' },
         {
           text: 'Cancella Tutto',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await clearPartyCode(); // Cancella anche il codice festa
-              setGuests([]); // Svuota l'array, l'useEffect si occuperà del salvataggio
-              setPartyCode(null);
-              setPartyCodeInitialized(false); // Reset del flag
-              setShowPartyCodeModal(true); // Richiedi nuovo codice festa
-              Alert.alert('Completato', 'Tutti i dati sono stati cancellati.\nInserisci un nuovo codice festa.');
-            } catch (error) {
-              Alert.alert('Errore', 'Impossibile cancellare completamente i dati');
-            }
+          onPress: () => {
+            setGuests([]); // Svuota l'array, l'useEffect si occuperà del salvataggio
+            Alert.alert('Completato', 'Tutti gli ospiti sono stati cancellati.');
           },
         },
       ]
@@ -297,15 +295,13 @@ const HomeScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={globalStyles.container}>
+    <SafeAreaView style={globalStyles.container} {...panResponder.panHandlers}>
       {/* Header */}
       <View style={globalStyles.header}>
-        <Text style={globalStyles.headerTitle}>🎉 Party List Manager</Text>
-        {partyCode && (
-          <Text style={styles.partyCodeText}>
-            Festa: {partyCode}
-          </Text>
-        )}
+        <Text style={globalStyles.headerTitle}>🎉 {party.name}</Text>
+        <Text style={styles.partyCodeText}>
+          Codice: {party.code}
+        </Text>
       </View>
 
       {/* Stats */}
@@ -342,6 +338,16 @@ const HomeScreen: React.FC = () => {
             <Ionicons name="qr-code-outline" size={20} color={colors.white} />
             <Text style={styles.buttonText}>Scanner</Text>
           </TouchableOpacity>
+
+          {guests.length > 0 && (
+            <TouchableOpacity
+              style={[styles.controlButton, styles.infoButton]}
+              onPress={handleExportReport}
+            >
+              <Ionicons name="document-text-outline" size={20} color={colors.white} />
+              <Text style={styles.buttonText}>Report</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -377,46 +383,7 @@ const HomeScreen: React.FC = () => {
         isSearching={searchQuery.length > 0}
       />
 
-      {/* Bottom Actions */}
-      {guests.length > 0 && (
-        <View style={styles.bottomActions}>
-          <TouchableOpacity
-            style={styles.bottomButton}
-            onPress={handleExportReport}
-          >
-            <Ionicons name="document-text-outline" size={18} color={colors.primary} />
-            <Text style={styles.bottomButtonText}>Report</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.bottomButton}
-            onPress={handleResetScans}
-          >
-            <Ionicons name="refresh-outline" size={18} color={colors.warning} />
-            <Text style={[styles.bottomButtonText, { color: colors.warning }]}>
-              Reset Scansioni
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.bottomButton}
-            onPress={handleClearAllData}
-          >
-            <Ionicons name="trash-outline" size={18} color={colors.danger} />
-            <Text style={[styles.bottomButtonText, { color: colors.danger }]}>
-              Cancella Tutto
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       {/* Modals */}
-      <PartyCodeModal
-        visible={showPartyCodeModal}
-        onConfirm={handlePartyCodeConfirm}
-        onCancel={partyCode ? handlePartyCodeCancel : undefined}
-      />
-
       <AddGuestModal
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
@@ -426,7 +393,7 @@ const HomeScreen: React.FC = () => {
       <Scanner
         visible={showScanner}
         guests={guests}
-        partyCode={partyCode}
+        partyCode={party.code}
         onClose={() => setShowScanner(false)}
         onScanSuccess={handleScanSuccess}
       />
@@ -447,11 +414,39 @@ const HomeScreen: React.FC = () => {
           />
         </ViewShot>
       ))}
+
+      {/* Floating Back Button */}
+      <TouchableOpacity
+        style={styles.floatingBackButton}
+        onPress={onBackToParties}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="arrow-back" size={24} color={colors.white} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  floatingBackButton: {
+    position: 'absolute',
+    bottom: spacing.xl,
+    left: spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.black,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
   controlsContainer: {
     padding: spacing.lg,
     gap: spacing.sm,
@@ -498,27 +493,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
-  },
-  bottomActions: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.gray[200],
-    backgroundColor: colors.white,
-    justifyContent: 'space-around',
-  },
-  bottomButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    gap: spacing.xs,
-  },
-  bottomButtonText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
-    color: colors.primary,
   },
   searchContainer: {
     paddingHorizontal: spacing.lg,

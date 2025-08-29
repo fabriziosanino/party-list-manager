@@ -24,9 +24,21 @@ export interface GuestStats {
   scanned: number;
 }
 
+export interface Party {
+  id: string;
+  code: string;
+  name: string;
+  createdAt: string;
+  lastModified: string;
+  guestCount: number;
+  paidCount: number;
+  scannedCount: number;
+}
+
 export type RootStackParamList = {
   Home: undefined;
   Scanner: undefined;
+  PartiesOverview: undefined;
 };
 
 export interface FileUploadResult {
