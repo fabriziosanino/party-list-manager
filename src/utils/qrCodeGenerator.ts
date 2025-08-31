@@ -4,18 +4,44 @@ interface QRData {
   partyCode: string;
 }
 
+// Chiave segreta per la firma (in produzione dovrebbe essere più sicura)
+const SECRET_KEY = 'PartyManager2024Secret';
+
+/**
+ * Genera una firma crittografica per i dati del QR
+ */
+const generateSignature = (data: QRData, timestamp: number): string => {
+  const payload = `${data.id}|${data.name}|${data.partyCode}|${timestamp}`;
+  // Simulazione di hash con btoa (in produzione usare crypto.subtle)
+  return btoa(`${payload}|${SECRET_KEY}`).slice(0, 16);
+};
+
+/**
+ * Verifica la firma crittografica
+ */
+const verifySignature = (data: QRData, timestamp: number, signature: string): boolean => {
+  const expectedSignature = generateSignature(data, timestamp);
+  return signature === expectedSignature;
+};
+
 /**
  * Genera un codice QR unico per un ospite basato sul codice festa
  */
 export const generateQRCode = (data: QRData): string => {
-  // Usa il codice festa + ID per garantire univocità ma consistenza
+  const timestamp = Date.now();
+  const signature = generateSignature(data, timestamp);
+  
   const uniqueId = `${data.partyCode}_${data.id}`;
-  const encodedData = btoa(JSON.stringify({ 
+  const secureData = { 
     id: data.id, 
     name: data.name, 
     partyCode: data.partyCode,
-    uniqueId 
-  }));
+    uniqueId,
+    timestamp,
+    signature
+  };
+  
+  const encodedData = btoa(JSON.stringify(secureData));
   return `QR_${encodedData}`;
 };
 
@@ -38,15 +64,24 @@ export const decodeQRCode = (qrCode: string): QRData | null => {
     const decodedString = atob(encodedData);
     const data = JSON.parse(decodedString);
 
-    if (data.id && data.name && data.partyCode) {
-      return {
-        id: data.id,
-        name: data.name,
-        partyCode: data.partyCode,
-      };
+    // Verifica che tutti i campi necessari siano presenti
+    if (!data.id || !data.name || !data.partyCode || !data.timestamp || !data.signature) {
+      return null;
     }
 
-    return null;
+    // Verifica la firma crittografica
+    const qrData: QRData = {
+      id: data.id,
+      name: data.name,
+      partyCode: data.partyCode,
+    };
+
+    if (!verifySignature(qrData, data.timestamp, data.signature)) {
+      console.warn('QR Code con firma non valida:', data);
+      return null;
+    }
+
+    return qrData;
   } catch (error) {
     console.error('Errore nella decodifica del QR code:', error);
     return null;
@@ -57,5 +92,27 @@ export const decodeQRCode = (qrCode: string): QRData | null => {
  * Valida se un QR code ha il formato corretto
  */
 export const validateQRCode = (qrCode: string): boolean => {
-  return qrCode.startsWith('QR_') && qrCode.split('_').length >= 3;
+  const decoded = decodeQRCode(qrCode);
+  return decoded !== null;
+};
+
+/**
+ * Migra i QR code esistenti al nuovo formato sicuro
+ */
+export const migrateQRCodes = (guests: any[], partyCode: string): any[] => {
+  return guests.map(guest => {
+    // Se il QR code non è valido con il nuovo formato, rigeneralo
+    if (!validateQRCode(guest.qrCode)) {
+      const newQRCode = generateQRCode({
+        id: guest.id,
+        name: guest.name,
+        partyCode: partyCode
+      });
+      return {
+        ...guest,
+        qrCode: newQRCode
+      };
+    }
+    return guest;
+  });
 };

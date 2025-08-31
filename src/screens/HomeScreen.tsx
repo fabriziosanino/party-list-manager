@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Guest, NewGuest, ScanResult, Party } from '../types';
-import { generateQRCode } from '../utils/qrCodeGenerator';
+import { generateQRCode, migrateQRCodes } from '../utils/qrCodeGenerator';
 import { 
   savePartyGuests, 
   loadPartyGuests, 
@@ -91,7 +91,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
   const loadData = async () => {
     try {
       const savedGuests = await loadPartyGuests(party.id);
-      setGuests(savedGuests);
+      
+      // Migra QR code esistenti al nuovo formato sicuro
+      const migratedGuests = migrateQRCodes(savedGuests, party.code);
+      
+      // Se sono stati migrati dei QR code, salva i dati aggiornati
+      if (JSON.stringify(savedGuests) !== JSON.stringify(migratedGuests)) {
+        await savePartyGuests(party.id, migratedGuests);
+        console.log('QR codes migrati al nuovo formato sicuro');
+      }
+      
+      setGuests(migratedGuests);
       setIsInitialLoad(false);
     } catch (error) {
       console.error('Errore nel caricamento dei dati:', error);
