@@ -169,13 +169,9 @@ const styles = StyleSheet.create({
   },
   paidButtonActive: {
     backgroundColor: '#22c55e30', // Verde con 30% opacità - più visibile
-    borderWidth: 1,
-    borderColor: '#22c55e', // Verde vivace
   },
   paidButtonInactive: {
     backgroundColor: '#ef444430', // Rosso con 30% opacità - più visibile
-    borderWidth: 1,
-    borderColor: '#ef4444', // Rosso vivace
   },
   paidText: {
     fontSize: typography.sizes.xs,

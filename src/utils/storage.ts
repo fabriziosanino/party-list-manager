@@ -169,7 +169,27 @@ export const loadAllParties = async (): Promise<Party[]> => {
     if (jsonData === null) {
       return [];
     }
-    return JSON.parse(jsonData);
+    const parties = JSON.parse(jsonData);
+    
+    // Migrazione: aggiungi unpaidCount se mancante
+    let needsSave = false;
+    const migratedParties = parties.map((party: any) => {
+      if (party.unpaidCount === undefined) {
+        needsSave = true;
+        return {
+          ...party,
+          unpaidCount: Math.max(0, party.guestCount - party.paidCount)
+        };
+      }
+      return party;
+    });
+    
+    // Salva se abbiamo fatto migrazioni
+    if (needsSave) {
+      await AsyncStorage.setItem(STORAGE_KEYS.PARTIES, JSON.stringify(migratedParties));
+    }
+    
+    return migratedParties;
   } catch (error) {
     console.error('Errore nel caricamento delle feste:', error);
     return [];
@@ -239,6 +259,7 @@ export const updatePartyStats = async (partyId: string, guests: Guest[]): Promis
         ...parties[partyIndex],
         guestCount: guests.length,
         paidCount: guests.filter(g => g.paid).length,
+        unpaidCount: guests.filter(g => !g.paid).length,
         scannedCount: guests.filter(g => g.scanned).length,
         lastModified: new Date().toISOString(),
       };

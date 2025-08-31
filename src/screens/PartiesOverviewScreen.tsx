@@ -77,6 +77,7 @@ const PartiesOverviewScreen: React.FC<PartiesOverviewScreenProps> = ({
       lastModified: new Date().toISOString(),
       guestCount: 0,
       paidCount: 0,
+      unpaidCount: 0,
       scannedCount: 0,
     };
 
@@ -171,7 +172,7 @@ const PartiesOverviewScreen: React.FC<PartiesOverviewScreenProps> = ({
         </View>
         <View style={styles.statItem}>
           <Ionicons name="card-outline" size={16} color={colors.success} />
-          <Text style={styles.statText}>{item.paidCount} pagati</Text>
+          <Text style={styles.statText}>{item.unpaidCount} devono pagare</Text>
         </View>
         <View style={styles.statItem}>
           <Ionicons name="checkmark-circle-outline" size={16} color={colors.warning} />

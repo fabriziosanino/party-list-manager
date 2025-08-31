@@ -33,6 +33,7 @@ export interface Party {
   lastModified: string;
   guestCount: number;
   paidCount: number;
+  unpaidCount: number;
   scannedCount: number;
 }
 
