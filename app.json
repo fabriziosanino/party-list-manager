@@ -1,27 +1,36 @@
 {
   "expo": {
-    "name": "PartyListManager",
-    "slug": "PartyListManager",
+    "name": "Event Manager",
+    "slug": "event-manager",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "description": "Professional event and party management app with QR code scanning, payment tracking, and guest management features.",
+    "privacy": "public",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#f7f6f6"
+      "backgroundColor": "#191716"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fabriziosanino.eventmanager"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#f7f6f6"
+        "backgroundColor": "#191716"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.fabriziosanino.PartyListManager"
+      "package": "com.fabriziosanino.eventmanager",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA"
+      ],
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34
     },
     "web": {
       "favicon": "./assets/favicon.png"
