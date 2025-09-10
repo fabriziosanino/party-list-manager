@@ -73,11 +73,13 @@ const GuestItem: React.FC<GuestItemProps> = ({
             styles.checkboxContainer,
             isSelected && styles.checkboxSelected
           ]}>
-            <Ionicons 
-              name={isSelected ? "checkmark" : "ellipse-outline"} 
-              size={isSelected ? 16 : 20} 
-              color={isSelected ? colors.white : colors.gray[400]} 
-            />
+            {isSelected && (
+              <Ionicons 
+                name="checkmark" 
+                size={16} 
+                color={colors.white} 
+              />
+            )}
           </View>
         </View>
       )}
@@ -180,11 +182,15 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   containerSelected: {
+    backgroundColor: '#E3F2FD', // Light blue background
     borderWidth: 2,
     borderColor: colors.primary,
-    backgroundColor: `${colors.primary}10`,
     borderRadius: borderRadius.lg,
-    transform: [{ scale: 0.98 }],
+    elevation: 4,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   selectionIndicator: {
     marginRight: spacing.md,

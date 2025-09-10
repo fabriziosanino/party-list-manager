@@ -24,7 +24,14 @@ import {
 import { uploadGuestsFile, exportQRCodes, exportPartyReport } from '../utils/fileHandler';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
-import Share from 'react-native-share';
+
+// Conditional import for react-native-share
+let Share: any = null;
+try {
+  Share = require('react-native-share').default;
+} catch (e) {
+  console.log('react-native-share not available, using expo-sharing fallback');
+}
 
 // Components
 import StatsCard from '../components/StatsCard';
@@ -271,13 +278,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
         return;
       }
 
-      // Share using react-native-share
-      const shareOptions = {
-        urls: validUris,
-        type: 'image/png',
-      };
-
-      await Share.open(shareOptions);
+      // Share using react-native-share or fallback to expo-sharing
+      if (Share) {
+        // Use react-native-share for multiple images
+        const shareOptions = {
+          urls: validUris,
+          type: 'image/png',
+        };
+        await Share.open(shareOptions);
+      } else {
+        // Fallback: share images one by one with expo-sharing
+        for (const uri of validUris) {
+          await Sharing.shareAsync(uri);
+        }
+      }
       
       // Exit multi-select mode after sharing
       handleCancelMultiSelect();
