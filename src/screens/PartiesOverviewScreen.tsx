@@ -196,7 +196,7 @@ const PartiesOverviewScreen: React.FC<PartiesOverviewScreenProps> = ({
     <SafeAreaView style={globalStyles.container}>
       {/* Header */}
       <View style={globalStyles.header}>
-        <Text style={globalStyles.headerTitle}>Party List Manager</Text>
+        <Text style={globalStyles.headerTitle}>Event List Manager</Text>
         <Text style={styles.subtitle}>
           Organizza e monitora i tuoi eventi in tempo reale
         </Text>

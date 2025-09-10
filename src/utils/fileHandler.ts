@@ -125,12 +125,10 @@ const parseGuestLine = (line: string, baseId: number): Guest | null => {
       id: baseId,
       name,
       paid,
-      qrCode: '',
+      qrCode: '', // QR code will be generated when guest is added to a party
       scanned: false,
       scanTime: null,
     };
-
-    guest.qrCode = generateQRCode({ id: guest.id, name: guest.name });
     
     return guest;
   } catch (error) {
@@ -259,7 +257,7 @@ ${guests.map((guest, index) =>
 - Ospiti paganti entrati: ${guests.filter(g => g.paid && g.scanned).length}
 - Ospiti non paganti entrati: ${guests.filter(g => !g.paid && g.scanned).length}
 
-Report generato automaticamente da Party List Manager
+Report generato automaticamente da Event List Manager
 `;
 };
 

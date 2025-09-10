@@ -4,8 +4,8 @@
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "build:android": "eas build --platform android",
     "build:ios": "eas build --platform ios",
@@ -23,15 +23,16 @@
     "expo-camera": "~16.1.11",
     "expo-document-picker": "13.1.6",
     "expo-file-system": "^18.1.11",
+    "expo-font": "~13.3.2",
     "expo-sharing": "^13.1.5",
     "expo-status-bar": "2.2.3",
     "prop-types": "^15.8.1",
     "react": "19.0.0",
     "react-native": "0.79.5",
     "react-native-qrcode-svg": "^6.3.15",
-    "react-native-view-shot": "^4.0.3",
-    "expo-font": "~13.3.2",
-    "react-native-svg": "15.11.2"
+    "react-native-share": "^12.2.0",
+    "react-native-svg": "15.11.2",
+    "react-native-view-shot": "^4.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

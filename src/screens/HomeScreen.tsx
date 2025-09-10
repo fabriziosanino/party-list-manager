@@ -24,6 +24,7 @@ import {
 import { uploadGuestsFile, exportQRCodes, exportPartyReport } from '../utils/fileHandler';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
+import Share from 'react-native-share';
 
 // Components
 import StatsCard from '../components/StatsCard';
@@ -45,6 +46,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
   const [loading, setLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGuests, setSelectedGuests] = useState<Set<number>>(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const qrViewShotRefs = useRef<{ [key: number]: ViewShot | null }>({});
 
   // Swipe gesture configuration
@@ -116,6 +119,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
       console.error('Errore nel salvataggio dei dati:', error);
     }
   };
+
+  // Populate QR ViewShot refs for all guests
+  useEffect(() => {
+    guests.forEach(guest => {
+      if (!qrViewShotRefs.current[guest.id]) {
+        qrViewShotRefs.current[guest.id] = null;
+      }
+    });
+  }, [guests]);
 
   const handleFileUpload = async () => {
     if (loading) return;
@@ -191,6 +203,93 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
 
   const handleRemoveGuest = (id: number) => {
     setGuests(prev => prev.filter(guest => guest.id !== id));
+  };
+
+  // Multi-select functions
+  const handleLongPressGuest = (id: number) => {
+    const guest = guests.find(g => g.id === id);
+    if (!guest?.scanned && !isMultiSelectMode) {
+      setIsMultiSelectMode(true);
+      setSelectedGuests(new Set([id]));
+    }
+  };
+
+  const handleSelectGuest = (id: number) => {
+    const guest = guests.find(g => g.id === id);
+    if (isMultiSelectMode && !guest?.scanned) {
+      setSelectedGuests(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(id)) {
+          newSet.delete(id);
+        } else {
+          newSet.add(id);
+        }
+        
+        // Exit multi-select mode if no guests are selected
+        if (newSet.size === 0) {
+          setIsMultiSelectMode(false);
+        }
+        
+        return newSet;
+      });
+    }
+  };
+
+  const handleCancelMultiSelect = () => {
+    setIsMultiSelectMode(false);
+    setSelectedGuests(new Set());
+  };
+
+  const handleShareMultipleQR = async () => {
+    if (selectedGuests.size === 0) return;
+
+    setLoading(true);
+    try {
+      const selectedGuestList = guests.filter(guest => selectedGuests.has(guest.id));
+      const qrImages: string[] = [];
+
+      // Generate QR codes for all selected guests
+      const qrPromises = selectedGuestList.map(async (guest) => {
+        const qrRef = qrViewShotRefs.current[guest.id];
+        if (qrRef && qrRef.capture) {
+          try {
+            const uri = await qrRef.capture();
+            return uri;
+          } catch (error) {
+            console.error(`Error generating QR for ${guest.name}:`, error);
+            return null;
+          }
+        }
+        return null;
+      });
+
+      const results = await Promise.all(qrPromises);
+      const validUris = results.filter(uri => uri !== null) as string[];
+
+      if (validUris.length === 0) {
+        Alert.alert('Errore', 'Impossibile generare i codici QR');
+        return;
+      }
+
+      // Share using react-native-share
+      const shareOptions = {
+        urls: validUris,
+        type: 'image/png',
+      };
+
+      await Share.open(shareOptions);
+      
+      // Exit multi-select mode after sharing
+      handleCancelMultiSelect();
+
+    } catch (error: any) {
+      if (error.message !== 'User did not share') {
+        console.error('Error sharing QR codes:', error);
+        Alert.alert('Errore', 'Impossibile condividere i codici QR');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Funzione per filtrare e ordinare gli ospiti
@@ -385,12 +484,55 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
         </View>
       )}
 
+      {/* Multi-select Action Bar */}
+      {isMultiSelectMode && (
+        <View style={styles.multiSelectBar}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={handleCancelMultiSelect}
+          >
+            <Ionicons name="close" size={20} color={colors.gray[600]} />
+            <Text style={styles.cancelButtonText}>Annulla</Text>
+          </TouchableOpacity>
+          
+          <Text style={styles.selectedCountText}>
+            {selectedGuests.size} selezionati
+          </Text>
+          
+          <TouchableOpacity
+            style={[
+              styles.shareButton,
+              selectedGuests.size === 0 && styles.shareButtonDisabled
+            ]}
+            onPress={handleShareMultipleQR}
+            disabled={selectedGuests.size === 0 || loading}
+          >
+            <Ionicons 
+              name="share-outline" 
+              size={20} 
+              color={selectedGuests.size === 0 ? colors.gray[400] : colors.white} 
+            />
+            <Text style={[
+              styles.shareButtonText,
+              selectedGuests.size === 0 && styles.shareButtonTextDisabled
+            ]}>
+              {loading ? 'Generando...' : 'Condividi QR'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Guest List */}
       <GuestList
         guests={filteredGuests}
         onTogglePaid={handleTogglePaid}
         onRemoveGuest={handleRemoveGuest}
         isSearching={searchQuery.length > 0}
+        isMultiSelectMode={isMultiSelectMode}
+        selectedGuests={selectedGuests}
+        onLongPressGuest={handleLongPressGuest}
+        onSelectGuest={handleSelectGuest}
+        qrViewShotRefs={qrViewShotRefs}
       />
 
       {/* Modals */}
@@ -530,6 +672,52 @@ const styles = StyleSheet.create({
   clearButton: {
     marginLeft: spacing.sm,
     padding: spacing.xs,
+  },
+  // Multi-select styles
+  multiSelectBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.gray[50],
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[200],
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    padding: spacing.sm,
+  },
+  cancelButtonText: {
+    fontSize: typography.sizes.md,
+    color: colors.gray[600],
+  },
+  selectedCountText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.gray[800],
+  },
+  shareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    gap: spacing.xs,
+  },
+  shareButtonDisabled: {
+    backgroundColor: colors.gray[300],
+  },
+  shareButtonText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.white,
+  },
+  shareButtonTextDisabled: {
+    color: colors.gray[400],
   },
 });
 

@@ -12,14 +12,25 @@ interface GuestItemProps {
   guest: Guest;
   onTogglePaid: (id: number) => void; // Toggle "paid / not paid" state
   onRemove: (id: number) => void;     // Remove guest from list
+  isMultiSelectMode?: boolean;
+  isSelected?: boolean;
+  onLongPress?: (id: number) => void;
+  onSelect?: (id: number) => void;
+  qrRef?: React.RefObject<ViewShot>;
 }
 
 const GuestItem: React.FC<GuestItemProps> = ({ 
   guest, 
   onTogglePaid, 
-  onRemove
+  onRemove,
+  isMultiSelectMode = false,
+  isSelected = false,
+  onLongPress,
+  onSelect,
+  qrRef
 }) => {
-  const viewShotRef = useRef<any>(null);
+  const internalViewShotRef = useRef<any>(null);
+  const viewShotRef = qrRef || internalViewShotRef;
 
    /**
    * Capture QR code with guest name and share it
@@ -31,11 +42,46 @@ const GuestItem: React.FC<GuestItemProps> = ({
     }
   };
 
+  const handlePress = () => {
+    if (isMultiSelectMode && onSelect) {
+      onSelect(guest.id);
+    }
+  };
+
+  const handleLongPress = () => {
+    if (!guest.scanned && onLongPress) {
+      onLongPress(guest.id);
+    }
+  };
+
   return (
-    <View style={[
-      styles.container,
-      guest.scanned && styles.containerScanned
-    ]}>
+    <TouchableOpacity 
+      key={`${guest.id}-${isSelected}-${isMultiSelectMode}`}
+      style={[
+        styles.container,
+        guest.scanned && styles.containerScanned,
+        isSelected && styles.containerSelected
+      ]}
+      onPress={handlePress}
+      onLongPress={handleLongPress}
+      disabled={guest.scanned}
+      activeOpacity={0.7}
+    >
+      {isMultiSelectMode && (
+        <View style={styles.selectionIndicator}>
+          <View style={[
+            styles.checkboxContainer,
+            isSelected && styles.checkboxSelected
+          ]}>
+            <Ionicons 
+              name={isSelected ? "checkmark" : "ellipse-outline"} 
+              size={isSelected ? 16 : 20} 
+              color={isSelected ? colors.white : colors.gray[400]} 
+            />
+          </View>
+        </View>
+      )}
+      
       <View style={styles.guestInfo}>
         <Text
           style={[
@@ -113,7 +159,7 @@ const GuestItem: React.FC<GuestItemProps> = ({
           <Ionicons name="trash-outline" size={18} color={colors.danger} />
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -126,11 +172,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    overflow: 'hidden',
     ...shadows.sm,
   },
   containerScanned: {
     backgroundColor: colors.gray[50],
     opacity: 0.8,
+  },
+  containerSelected: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: `${colors.primary}10`,
+    borderRadius: borderRadius.lg,
+    transform: [{ scale: 0.98 }],
+  },
+  selectionIndicator: {
+    marginRight: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.gray[300],
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   guestInfo: {
     flex: 1,

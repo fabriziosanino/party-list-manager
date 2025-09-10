@@ -9,13 +9,23 @@ interface GuestListProps {
   onTogglePaid: (id: number) => void;
   onRemoveGuest: (id: number) => void;
   isSearching?: boolean;
+  isMultiSelectMode?: boolean;
+  selectedGuests?: Set<number>;
+  onLongPressGuest?: (id: number) => void;
+  onSelectGuest?: (id: number) => void;
+  qrViewShotRefs?: React.MutableRefObject<{ [key: number]: any }>;
 }
 
 const GuestList: React.FC<GuestListProps> = ({ 
   guests, 
   onTogglePaid, 
   onRemoveGuest,
-  isSearching = false
+  isSearching = false,
+  isMultiSelectMode = false,
+  selectedGuests = new Set(),
+  onLongPressGuest,
+  onSelectGuest,
+  qrViewShotRefs
 }) => {
   const handleRemoveGuest = (id: number) => {
     const guest = guests.find(g => g.id === id);
@@ -72,6 +82,11 @@ const GuestList: React.FC<GuestListProps> = ({
             guest={guest}
             onTogglePaid={onTogglePaid}
             onRemove={handleRemoveGuest}
+            isMultiSelectMode={isMultiSelectMode}
+            isSelected={selectedGuests.has(guest.id)}
+            onLongPress={onLongPressGuest}
+            onSelect={onSelectGuest}
+            qrRef={qrViewShotRefs?.current[guest.id] ? { current: qrViewShotRefs.current[guest.id] } : undefined}
           />
         ))}
       </ScrollView>
