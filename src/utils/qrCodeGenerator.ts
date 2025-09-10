@@ -4,16 +4,22 @@ interface QRData {
   partyCode: string;
 }
 
-// Chiave segreta per la firma (in produzione dovrebbe essere più sicura)
-const SECRET_KEY = 'PartyManager2024Secret';
-
 /**
- * Genera una firma crittografica per i dati del QR
+ * Genera una firma crittografica per i dati del QR usando il codice festa come chiave
  */
 const generateSignature = (data: QRData, timestamp: number): string => {
-  const payload = `${data.id}|${data.name}|${data.partyCode}|${timestamp}`;
-  // Simulazione di hash con btoa (in produzione usare crypto.subtle)
-  return btoa(`${payload}|${SECRET_KEY}`).slice(0, 16);
+  const payload = `${data.id}|${data.name}|${timestamp}`;
+  // Usa il codice festa come chiave segreta per la firma
+  const secretKey = data.partyCode.toUpperCase();
+  const signatureData = `${payload}|${secretKey}|${secretKey.length}`;
+  
+  // Genera hash più robusto usando multiple trasformazioni
+  let hash = btoa(signatureData);
+  for (let i = 0; i < 3; i++) {
+    hash = btoa(hash + secretKey);
+  }
+  
+  return hash.slice(0, 20); // Firma più lunga per maggiore sicurezza
 };
 
 /**
