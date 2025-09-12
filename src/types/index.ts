@@ -27,6 +27,7 @@ export interface ScanResult {
   status: 'success' | 'payment' | 'invalid' | 'used';
   message: string;
   guest: string | null;
+  listName?: string;
 }
 
 export interface GuestStats {

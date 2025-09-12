@@ -2,13 +2,15 @@ interface QRData {
   id: number;
   name: string;
   partyCode: string;
+  listId: string;
+  listName?: string;
 }
 
 /**
  * Genera una firma crittografica per i dati del QR usando il codice festa come chiave
  */
 const generateSignature = (data: QRData, timestamp: number): string => {
-  const payload = `${data.id}|${data.name}|${timestamp}`;
+  const payload = `${data.id}|${data.name}|${data.listId}|${timestamp}`;
   // Usa il codice festa come chiave segreta per la firma
   const secretKey = data.partyCode.toUpperCase();
   const signatureData = `${payload}|${secretKey}|${secretKey.length}`;
@@ -42,6 +44,8 @@ export const generateQRCode = (data: QRData): string => {
     id: data.id, 
     name: data.name, 
     partyCode: data.partyCode,
+    listId: data.listId,
+    listName: data.listName,
     uniqueId,
     timestamp,
     signature
@@ -71,7 +75,7 @@ export const decodeQRCode = (qrCode: string): QRData | null => {
     const data = JSON.parse(decodedString);
 
     // Verifica che tutti i campi necessari siano presenti
-    if (!data.id || !data.name || !data.partyCode || !data.timestamp || !data.signature) {
+    if (!data.id || !data.name || !data.partyCode || !data.listId || !data.timestamp || !data.signature) {
       return null;
     }
 
@@ -80,6 +84,8 @@ export const decodeQRCode = (qrCode: string): QRData | null => {
       id: data.id,
       name: data.name,
       partyCode: data.partyCode,
+      listId: data.listId,
+      listName: data.listName,
     };
 
     if (!verifySignature(qrData, data.timestamp, data.signature)) {
@@ -105,14 +111,19 @@ export const validateQRCode = (qrCode: string): boolean => {
 /**
  * Migra i QR code esistenti al nuovo formato sicuro
  */
-export const migrateQRCodes = (guests: any[], partyCode: string): any[] => {
+export const migrateQRCodes = (guests: any[], partyCode: string, guestLists: any[] = []): any[] => {
   return guests.map(guest => {
     // Se il QR code non è valido con il nuovo formato, rigeneralo
     if (!validateQRCode(guest.qrCode)) {
+      // Trova il nome della lista
+      const guestList = guestLists.find(list => list.id === guest.listId);
+      
       const newQRCode = generateQRCode({
         id: guest.id,
         name: guest.name,
-        partyCode: partyCode
+        partyCode: partyCode,
+        listId: guest.listId || 'default',
+        listName: guestList?.name
       });
       return {
         ...guest,

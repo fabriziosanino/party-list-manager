@@ -68,8 +68,9 @@ const Scanner: React.FC<ScannerProps> = ({
       if (qrData.partyCode !== partyCode) {
         const result: ScanResult = {
           status: 'invalid',
-          message: `QR Code per festa diversa (${qrData.partyCode})\nFesta attuale: ${partyCode}`,
+          message: `QR Code per festa diversa${qrData.listName ? `\nLista originale: ${qrData.listName}` : ''}`,
           guest: qrData.name,
+          listName: qrData.listName,
         };
         setScanResult(result);
         return;
@@ -83,6 +84,7 @@ const Scanner: React.FC<ScannerProps> = ({
           status: 'invalid',
           message: 'QR Code non presente in questa lista ospiti',
           guest: qrData.name,
+          listName: qrData.listName,
         };
         setScanResult(result);
         return;
@@ -93,6 +95,7 @@ const Scanner: React.FC<ScannerProps> = ({
           status: 'used',
           message: `QR Code già utilizzato il ${guest.scanTime}`,
           guest: guest.name,
+          listName: qrData.listName,
         };
         setScanResult(result);
         return;
@@ -103,14 +106,16 @@ const Scanner: React.FC<ScannerProps> = ({
       if (guest.paid) {
         result = {
           status: 'success',
-          message: '✅ Può entrare - Pagamento già effettuato',
+          message: `✅ Può entrare - Pagamento già effettuato${qrData.listName ? `\n📋 Lista: ${qrData.listName}` : ''}`,
           guest: guest.name,
+          listName: qrData.listName,
         };
       } else {
         result = {
           status: 'payment',
-          message: '💰 Deve effettuare il pagamento all\'ingresso',
+          message: `💰 Deve effettuare il pagamento all'ingresso${qrData.listName ? `\n📋 Lista: ${qrData.listName}` : ''}`,
           guest: guest.name,
+          listName: qrData.listName,
         };
       }
 

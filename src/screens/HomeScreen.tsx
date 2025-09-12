@@ -112,7 +112,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
       ]);
       
       // Migra QR code esistenti al nuovo formato sicuro
-      const migratedGuests = migrateQRCodes(savedGuests, party.code);
+      const migratedGuests = migrateQRCodes(savedGuests, party.code, savedGuestLists);
       
       // Se sono stati migrati dei QR code, salva i dati aggiornati
       if (JSON.stringify(savedGuests) !== JSON.stringify(migratedGuests)) {
@@ -158,10 +158,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
       listId: newGuest.listId,
     };
     
+    // Trova il nome della lista
+    const guestList = guestLists.find(list => list.id === newGuest.listId);
+    
     guest.qrCode = generateQRCode({ 
       id: guest.id, 
       name: guest.name, 
-      partyCode: party.code 
+      partyCode: party.code,
+      listId: newGuest.listId,
+      listName: guestList?.name
     });
     
     setGuests(prev => [...prev, guest]);
