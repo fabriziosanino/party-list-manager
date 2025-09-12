@@ -54,23 +54,23 @@ const StatsCard: React.FC<StatsCardProps> = ({ guests }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    padding: spacing.lg,
-    gap: spacing.sm,
+    padding: spacing.md,
+    gap: spacing.xs,
   },
   statBox: {
     flex: 1,
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
     alignItems: 'center',
     ...shadows.sm,
   },
   statNumber: {
-    fontSize: typography.sizes.xxl,
+    fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
   },
   statLabel: {
     fontSize: typography.sizes.xs,
-    marginTop: spacing.xs,
+    marginTop: 2,
     textAlign: 'center',
   },
 });

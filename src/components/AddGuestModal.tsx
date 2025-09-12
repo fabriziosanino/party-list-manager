@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NewGuest, GuestList } from '../types';
+import { NewGuest, GuestList, Guest } from '../types';
 import { colors, spacing, typography, borderRadius, shadows, globalStyles } from '../constants/styles';
 
 interface AddGuestModalProps {
@@ -19,6 +19,7 @@ interface AddGuestModalProps {
   onClose: () => void;
   onAdd: (guest: NewGuest) => void;
   guestLists: GuestList[];
+  existingGuests: Guest[];
 }
 
 const AddGuestModal: React.FC<AddGuestModalProps> = ({
@@ -26,6 +27,7 @@ const AddGuestModal: React.FC<AddGuestModalProps> = ({
   onClose,
   onAdd,
   guestLists,
+  existingGuests,
 }) => {
   const [guest, setGuest] = useState<NewGuest>({ 
     name: '', 
@@ -53,7 +55,7 @@ const AddGuestModal: React.FC<AddGuestModalProps> = ({
     }
   };
 
-  const handleAddGuest = () => {
+  const handleSave = () => {
     const trimmedName = guest.name.trim();
     
     if (!trimmedName) {
@@ -63,6 +65,20 @@ const AddGuestModal: React.FC<AddGuestModalProps> = ({
 
     if (trimmedName.length < 2) {
       setNameError('Il nome deve avere almeno 2 caratteri');
+      return;
+    }
+
+    // Controlla nomi duplicati nella stessa lista
+    const duplicateInSameList = existingGuests.find(
+      existingGuest => 
+        existingGuest.listId === guest.listId && 
+        existingGuest.name.toLowerCase().trim() === trimmedName.toLowerCase()
+    );
+
+    if (duplicateInSameList) {
+      const selectedList = guestLists.find(list => list.id === guest.listId);
+      const listName = selectedList ? selectedList.name : 'questa lista';
+      setNameError(`"${trimmedName}" esiste già in ${listName}`);
       return;
     }
 
@@ -140,12 +156,6 @@ const AddGuestModal: React.FC<AddGuestModalProps> = ({
                     ]}
                     onPress={() => setGuest(prev => ({ ...prev, listId: list.id }))}
                   >
-                    <View 
-                      style={[
-                        styles.listColorIndicator, 
-                        { backgroundColor: list.color }
-                      ]} 
-                    />
                     <Text style={[
                       styles.listOptionText,
                       guest.listId === list.id && styles.listOptionTextSelected
@@ -188,7 +198,7 @@ const AddGuestModal: React.FC<AddGuestModalProps> = ({
 
             <TouchableOpacity
               style={[styles.button, styles.addButton]}
-              onPress={handleAddGuest}
+              onPress={handleSave}
             >
               <Ionicons name="person-add" size={18} color={colors.white} />
               <Text style={styles.addButtonText}>Aggiungi Ospite</Text>
@@ -333,12 +343,6 @@ const styles = StyleSheet.create({
   listOptionSelected: {
     backgroundColor: `${colors.primary}15`,
     borderColor: colors.primary,
-  },
-  listColorIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: spacing.sm,
   },
   listOptionText: {
     fontSize: typography.sizes.sm,

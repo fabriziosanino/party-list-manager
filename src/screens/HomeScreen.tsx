@@ -24,7 +24,7 @@ import {
   savePartyGuestLists,
   updateGuestListStats
 } from '../utils/storage';
-import { uploadGuestsFile, exportQRCodes, exportPartyReport } from '../utils/fileHandler';
+import { exportQRCodes, exportPartyReport } from '../utils/fileHandler';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 
@@ -38,7 +38,7 @@ try {
 
 // Components
 import StatsCard from '../components/StatsCard';
-import GuestList from '../components/GuestList';
+import GuestsByList from '../components/GuestsByList';
 import AddGuestModal from '../components/AddGuestModal';
 import GuestListModal from '../components/GuestListModal';
 import Scanner from '../components/Scanner';
@@ -147,44 +147,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
     });
   }, [guests]);
 
-  const handleFileUpload = async () => {
-    if (loading) return;
-    
-    setLoading(true);
-    try {
-      const result = await uploadGuestsFile();
-      
-      if (result.success && result.guests) {
-        // Assign uploaded guests to the default list and generate QR codes
-        const defaultListId = guestLists[0]?.id || '';
-        const processedGuests = result.guests.map(guest => ({
-          ...guest,
-          listId: defaultListId,
-          qrCode: generateQRCode({ 
-            id: guest.id, 
-            name: guest.name, 
-            partyCode: party.code 
-          })
-        }));
-        
-        // Add the processed guests to the current list
-        setGuests(prev => [...prev, ...processedGuests]);
-        
-        Alert.alert(
-          'Successo!',
-          `Aggiunti ${result.guestsAdded} ospiti alla lista${result.error ? `\n\n${result.error}` : ''}`,
-          [{ text: 'OK' }]
-        );
-      } else {
-        Alert.alert('Errore', result.error || 'Impossibile caricare il file');
-      }
-    } catch (error) {
-      Alert.alert('Errore', 'Si è verificato un errore durante il caricamento del file');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleAddGuest = (newGuest: NewGuest) => {
     const guest: Guest = {
       id: Date.now(),
@@ -227,7 +189,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
       await updateGuestListStats(party.id, updatedGuests);
     } catch (error) {
       console.error('Error saving guest lists:', error);
-      Alert.alert('Error', 'Failed to save guest lists');
+      Alert.alert('Errore', 'Impossibile salvare le liste degli ospiti');
     }
   };
 
@@ -483,17 +445,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
       <View style={styles.controlsContainer}>
         <View style={styles.controlsRow}>
           <TouchableOpacity
-            style={[styles.controlButton, styles.primaryButton]}
-            onPress={handleFileUpload}
-            disabled={loading}
-          >
-            <Ionicons name="cloud-upload-outline" size={20} color={colors.white} />
-            <Text style={styles.buttonText}>
-              {loading ? 'Caricamento...' : 'Carica Lista'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
             style={[styles.controlButton, styles.secondaryButton]}
             onPress={() => setShowAddModal(true)}
           >
@@ -594,15 +545,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
       )}
 
       {/* Guest List */}
-      <GuestList
+      <GuestsByList
         guests={filteredGuests}
-        onTogglePaid={handleTogglePaid}
-        onRemoveGuest={handleRemoveGuest}
-        isSearching={searchQuery.length > 0}
-        isMultiSelectMode={isMultiSelectMode}
+        guestLists={guestLists}
+        searchQuery={searchQuery}
         selectedGuests={selectedGuests}
-        onLongPressGuest={handleLongPressGuest}
-        onSelectGuest={handleSelectGuest}
+        multiSelectMode={isMultiSelectMode}
+        onToggleGuest={isMultiSelectMode ? handleSelectGuest : handleLongPressGuest}
+        onTogglePaid={handleTogglePaid}
+        onDeleteGuest={handleRemoveGuest}
         qrViewShotRefs={qrViewShotRefs}
       />
 
@@ -612,6 +563,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddGuest}
         guestLists={guestLists}
+        existingGuests={guests}
       />
 
       <GuestListModal
