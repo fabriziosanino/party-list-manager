@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Guest, Party } from '../types';
+import { Guest, Party, GuestList } from '../types';
 
 const STORAGE_KEYS = {
   GUESTS: '@party_guests',
@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   PARTY_CODE: '@party_code',
   PARTIES: '@parties_list',
   PARTY_GUESTS_PREFIX: '@party_guests_',
+  GUEST_LISTS_PREFIX: '@guest_lists_',
 } as const;
 
 /**
@@ -268,5 +269,65 @@ export const updatePartyStats = async (partyId: string, guests: Guest[]): Promis
     }
   } catch (error) {
     console.error('Errore nell\'aggiornamento delle statistiche della festa:', error);
+  }
+};
+
+/**
+ * Save guest lists for a party
+ */
+export const savePartyGuestLists = async (partyId: string, lists: GuestList[]): Promise<void> => {
+  try {
+    const jsonData = JSON.stringify(lists);
+    await AsyncStorage.setItem(`${STORAGE_KEYS.GUEST_LISTS_PREFIX}${partyId}`, jsonData);
+  } catch (error) {
+    console.error('Errore nel salvataggio delle liste ospiti:', error);
+    throw new Error('Impossibile salvare le liste ospiti');
+  }
+};
+
+/**
+ * Load guest lists for a party
+ */
+export const loadPartyGuestLists = async (partyId: string): Promise<GuestList[]> => {
+  try {
+    const jsonData = await AsyncStorage.getItem(`${STORAGE_KEYS.GUEST_LISTS_PREFIX}${partyId}`);
+    if (jsonData === null) {
+      return [];
+    }
+    return JSON.parse(jsonData);
+  } catch (error) {
+    console.error('Errore nel caricamento delle liste ospiti:', error);
+    return [];
+  }
+};
+
+/**
+ * Create default guest list for a party
+ */
+export const createDefaultGuestList = (partyId: string): GuestList => {
+  return {
+    id: `${partyId}_default`,
+    name: 'Lista Principale',
+    color: '#3B82F6',
+    partyId,
+    createdAt: new Date().toISOString(),
+    guestCount: 0,
+  };
+};
+
+/**
+ * Update guest list statistics
+ */
+export const updateGuestListStats = async (partyId: string, guests: Guest[]): Promise<void> => {
+  try {
+    const lists = await loadPartyGuestLists(partyId);
+    const updatedLists = lists.map(list => ({
+      ...list,
+      guestCount: guests.filter(g => g.listId === list.id).length,
+    }));
+    
+    await savePartyGuestLists(partyId, updatedLists);
+  } catch (error) {
+    console.error('Errore nell\'aggiornamento delle statistiche liste:', error);
   }
 };

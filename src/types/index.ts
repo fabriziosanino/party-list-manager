@@ -5,11 +5,22 @@ export interface Guest {
   qrCode: string;
   scanned: boolean;
   scanTime: string | null;
+  listId: string;
 }
 
 export interface NewGuest {
   name: string;
   paid: boolean;
+  listId: string;
+}
+
+export interface GuestList {
+  id: string;
+  name: string;
+  color: string;
+  partyId: string;
+  createdAt: string;
+  guestCount: number;
 }
 
 export interface ScanResult {
@@ -35,6 +46,7 @@ export interface Party {
   paidCount: number;
   unpaidCount: number;
   scannedCount: number;
+  lists: GuestList[];
 }
 
 export type RootStackParamList = {
@@ -46,5 +58,6 @@ export type RootStackParamList = {
 export interface FileUploadResult {
   success: boolean;
   guestsAdded: number;
+  guests?: Guest[];
   error?: string;
 }

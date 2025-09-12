@@ -13,13 +13,16 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Guest, NewGuest, ScanResult, Party } from '../types';
+import { Guest, NewGuest, ScanResult, Party, GuestList as GuestListType } from '../types';
 import { generateQRCode, migrateQRCodes } from '../utils/qrCodeGenerator';
 import { 
   savePartyGuests, 
   loadPartyGuests, 
   saveParty,
-  updatePartyStats 
+  updatePartyStats,
+  loadPartyGuestLists,
+  savePartyGuestLists,
+  updateGuestListStats
 } from '../utils/storage';
 import { uploadGuestsFile, exportQRCodes, exportPartyReport } from '../utils/fileHandler';
 import * as Sharing from 'expo-sharing';
@@ -37,6 +40,7 @@ try {
 import StatsCard from '../components/StatsCard';
 import GuestList from '../components/GuestList';
 import AddGuestModal from '../components/AddGuestModal';
+import GuestListModal from '../components/GuestListModal';
 import Scanner from '../components/Scanner';
 
 import { colors, spacing, typography, borderRadius, globalStyles } from '../constants/styles';
@@ -48,8 +52,10 @@ interface HomeScreenProps {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [guestLists, setGuestLists] = useState<GuestListType[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showGuestListModal, setShowGuestListModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,7 +106,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
 
   const loadData = async () => {
     try {
-      const savedGuests = await loadPartyGuests(party.id);
+      const [savedGuests, savedGuestLists] = await Promise.all([
+        loadPartyGuests(party.id),
+        loadPartyGuestLists(party.id)
+      ]);
       
       // Migra QR code esistenti al nuovo formato sicuro
       const migratedGuests = migrateQRCodes(savedGuests, party.code);
@@ -112,6 +121,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
       }
       
       setGuests(migratedGuests);
+      setGuestLists(savedGuestLists);
       setIsInitialLoad(false);
     } catch (error) {
       console.error('Errore nel caricamento dei dati:', error);
@@ -122,6 +132,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
   const saveData = async () => {
     try {
       await savePartyGuests(party.id, guests);
+      await updateGuestListStats(party.id, guests);
     } catch (error) {
       console.error('Errore nel salvataggio dei dati:', error);
     }
@@ -143,16 +154,27 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
     try {
       const result = await uploadGuestsFile();
       
-      if (result.success) {
-        // Parse the uploaded guests and add them to the current list
+      if (result.success && result.guests) {
+        // Assign uploaded guests to the default list and generate QR codes
+        const defaultListId = guestLists[0]?.id || '';
+        const processedGuests = result.guests.map(guest => ({
+          ...guest,
+          listId: defaultListId,
+          qrCode: generateQRCode({ 
+            id: guest.id, 
+            name: guest.name, 
+            partyCode: party.code 
+          })
+        }));
+        
+        // Add the processed guests to the current list
+        setGuests(prev => [...prev, ...processedGuests]);
+        
         Alert.alert(
           'Successo!',
           `Aggiunti ${result.guestsAdded} ospiti alla lista${result.error ? `\n\n${result.error}` : ''}`,
           [{ text: 'OK' }]
         );
-        
-        // Reload data to get the new guests
-        await loadData();
       } else {
         Alert.alert('Errore', result.error || 'Impossibile caricare il file');
       }
@@ -171,6 +193,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
       qrCode: '',
       scanned: false,
       scanTime: null,
+      listId: newGuest.listId,
     };
     
     guest.qrCode = generateQRCode({ 
@@ -180,6 +203,32 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
     });
     
     setGuests(prev => [...prev, guest]);
+  };
+
+  const handleSaveGuestLists = async (lists: GuestListType[]) => {
+    try {
+      await savePartyGuestLists(party.id, lists);
+      setGuestLists(lists);
+      
+      // Migrate guests assigned to deleted lists to the first available list
+      const listIds = new Set(lists.map(l => l.id));
+      const updatedGuests = guests.map(guest => {
+        if (!listIds.has(guest.listId)) {
+          return { ...guest, listId: lists[0]?.id || '' };
+        }
+        return guest;
+      });
+      
+      if (JSON.stringify(guests) !== JSON.stringify(updatedGuests)) {
+        setGuests(updatedGuests);
+      }
+      
+      // Update guest list statistics
+      await updateGuestListStats(party.id, updatedGuests);
+    } catch (error) {
+      console.error('Error saving guest lists:', error);
+      Alert.alert('Error', 'Failed to save guest lists');
+    }
   };
 
   const handleTogglePaid = (id: number) => {
@@ -451,6 +500,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
             <Ionicons name="person-add-outline" size={20} color={colors.white} />
             <Text style={styles.buttonText}>Aggiungi</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.controlButton, styles.infoButton]}
+            onPress={() => setShowGuestListModal(true)}
+          >
+            <Ionicons name="list-outline" size={20} color={colors.white} />
+            <Text style={styles.buttonText}>Liste</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.controlsRow}>
@@ -554,6 +611,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddGuest}
+        guestLists={guestLists}
+      />
+
+      <GuestListModal
+        visible={showGuestListModal}
+        onClose={() => setShowGuestListModal(false)}
+        partyId={party.id}
+        guestLists={guestLists}
+        onSaveGuestLists={handleSaveGuestLists}
       />
 
       <Scanner

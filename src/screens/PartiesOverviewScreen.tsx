@@ -10,8 +10,8 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Party } from '../types';
-import { loadAllParties, saveParty, deleteParty } from '../utils/storage';
+import { Party, GuestList } from '../types';
+import { loadAllParties, saveParty, deleteParty, savePartyGuestLists, loadPartyGuestLists, createDefaultGuestList } from '../utils/storage';
 import { colors, spacing, typography, borderRadius, globalStyles } from '../constants/styles';
 
 interface PartiesOverviewScreenProps {
@@ -34,7 +34,20 @@ const PartiesOverviewScreen: React.FC<PartiesOverviewScreenProps> = ({
   const loadParties = async () => {
     try {
       const savedParties = await loadAllParties();
-      setParties(savedParties);
+      
+      // Ensure all parties have the lists property
+      const updatedParties = await Promise.all(
+        savedParties.map(async (party) => {
+          if (!party.lists || party.lists.length === 0) {
+            const defaultList = createDefaultGuestList(party.id);
+            await savePartyGuestLists(party.id, [defaultList]);
+            party.lists = [defaultList];
+          }
+          return party;
+        })
+      );
+      
+      setParties(updatedParties);
     } catch (error) {
       console.error('Errore nel caricamento delle feste:', error);
       Alert.alert('Errore', 'Impossibile caricare le feste salvate');
@@ -79,10 +92,17 @@ const PartiesOverviewScreen: React.FC<PartiesOverviewScreenProps> = ({
       paidCount: 0,
       unpaidCount: 0,
       scannedCount: 0,
+      lists: [],
     };
 
     try {
+      // Create default guest list
+      const defaultList = createDefaultGuestList(newParty.id);
+      newParty.lists = [defaultList];
+      
       await saveParty(newParty);
+      await savePartyGuestLists(newParty.id, [defaultList]);
+      
       setParties((prev) => [newParty, ...prev]);
       setNewPartyName('');
       setNewPartyCode('');

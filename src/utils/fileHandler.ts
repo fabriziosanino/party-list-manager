@@ -72,6 +72,7 @@ const parseGuestsFromCSV = (csvContent: string): FileUploadResult => {
     return { 
       success: true, 
       guestsAdded: guests.length,
+      guests: guests,
       error: skippedLines > 0 ? `${skippedLines} righe saltate per errori di formato` : undefined
     };
 
@@ -128,6 +129,7 @@ const parseGuestLine = (line: string, baseId: number): Guest | null => {
       qrCode: '', // QR code will be generated when guest is added to a party
       scanned: false,
       scanTime: null,
+      listId: '', // Will be assigned to default list when added to party
     };
     
     return guest;

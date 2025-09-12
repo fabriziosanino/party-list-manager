@@ -11,30 +11,40 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NewGuest } from '../types';
+import { NewGuest, GuestList } from '../types';
 import { colors, spacing, typography, borderRadius, shadows, globalStyles } from '../constants/styles';
 
 interface AddGuestModalProps {
   visible: boolean;
   onClose: () => void;
   onAdd: (guest: NewGuest) => void;
+  guestLists: GuestList[];
 }
 
 const AddGuestModal: React.FC<AddGuestModalProps> = ({
   visible,
   onClose,
   onAdd,
+  guestLists,
 }) => {
-  const [guest, setGuest] = useState<NewGuest>({ name: '', paid: false });
+  const [guest, setGuest] = useState<NewGuest>({ 
+    name: '', 
+    paid: false, 
+    listId: guestLists[0]?.id || '' 
+  });
   const [nameError, setNameError] = useState<string>('');
 
   // Reset form when modal opens
   useEffect(() => {
     if (visible) {
-      setGuest({ name: '', paid: false });
+      setGuest({ 
+        name: '', 
+        paid: false, 
+        listId: guestLists[0]?.id || '' 
+      });
       setNameError('');
     }
-  }, [visible]);
+  }, [visible, guestLists]);
 
   const handleNameChange = (text: string) => {
     setGuest(prev => ({ ...prev, name: text }));
@@ -61,7 +71,11 @@ const AddGuestModal: React.FC<AddGuestModalProps> = ({
   };
 
   const handleCancel = () => {
-    setGuest({ name: '', paid: false });
+    setGuest({ 
+      name: '', 
+      paid: false, 
+      listId: guestLists[0]?.id || '' 
+    });
     setNameError('');
     onClose();
   };
@@ -111,6 +125,36 @@ const AddGuestModal: React.FC<AddGuestModalProps> = ({
                   <Text style={styles.errorText}>{nameError}</Text>
                 </View>
               ) : null}
+            </View>
+
+            {/* List Selection */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Lista</Text>
+              <View style={styles.listSelector}>
+                {guestLists.map((list) => (
+                  <TouchableOpacity
+                    key={list.id}
+                    style={[
+                      styles.listOption,
+                      guest.listId === list.id && styles.listOptionSelected
+                    ]}
+                    onPress={() => setGuest(prev => ({ ...prev, listId: list.id }))}
+                  >
+                    <View 
+                      style={[
+                        styles.listColorIndicator, 
+                        { backgroundColor: list.color }
+                      ]} 
+                    />
+                    <Text style={[
+                      styles.listOptionText,
+                      guest.listId === list.id && styles.listOptionTextSelected
+                    ]}>
+                      {list.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             <View style={styles.switchGroup}>
@@ -271,6 +315,39 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
     color: colors.white,
+  },
+  listSelector: {
+    marginTop: spacing.xs,
+  },
+  listOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    backgroundColor: colors.gray[50],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+  },
+  listOptionSelected: {
+    backgroundColor: `${colors.primary}15`,
+    borderColor: colors.primary,
+  },
+  listColorIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: spacing.sm,
+  },
+  listOptionText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.primary,
+    fontWeight: typography.weights.medium,
+  },
+  listOptionTextSelected: {
+    color: colors.primary,
+    fontWeight: typography.weights.semibold,
   },
 });
 
