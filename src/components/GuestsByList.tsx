@@ -8,12 +8,13 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Guest, GuestList as GuestListType } from '../types';
+import { Guest, GuestList as GuestListType, Party } from '../types';
 import GuestItem from './GuestItem';
 import { colors, spacing, typography, borderRadius } from '../constants/styles';
 
 interface GuestsByListProps {
   guests: Guest[];
+  party: Party;
   guestLists: GuestListType[];
   searchQuery: string;
   selectedGuests: Set<number>;
@@ -33,6 +34,7 @@ interface SectionData {
 
 const GuestsByList: React.FC<GuestsByListProps> = ({
   guests,
+  party,
   guestLists,
   searchQuery,
   selectedGuests,
@@ -75,6 +77,7 @@ const GuestsByList: React.FC<GuestsByListProps> = ({
   const renderGuest = ({ item }: { item: Guest }) => (
     <GuestItem
       guest={item}
+      party={party}
       isSelected={selectedGuests.has(item.id)}
       isMultiSelectMode={multiSelectMode}
       onSelect={onToggleGuest}

@@ -48,6 +48,8 @@ export interface Party {
   unpaidCount: number;
   scannedCount: number;
   lists: GuestList[];
+  eventPhoto?: string; // URI della foto dell'evento
+  startTime?: string; // Orario di inizio dell'evento (formato ISO string)
 }
 
 export type RootStackParamList = {

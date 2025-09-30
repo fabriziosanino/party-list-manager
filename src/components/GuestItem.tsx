@@ -1,8 +1,8 @@
 import React, { useRef } from 'react';
 import ViewShot from 'react-native-view-shot';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Guest } from '../types';
+import { Guest, Party } from '../types';
 import { colors, spacing, typography, borderRadius, shadows } from '../constants/styles';
 import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system';
@@ -10,6 +10,7 @@ import * as Sharing from 'expo-sharing';
 
 interface GuestItemProps {
   guest: Guest;
+  party: Party;
   onTogglePaid: (id: number) => void; // Toggle "paid / not paid" state
   onRemove: (id: number) => void;     // Remove guest from list
   isMultiSelectMode?: boolean;
@@ -21,6 +22,7 @@ interface GuestItemProps {
 
 const GuestItem: React.FC<GuestItemProps> = ({ 
   guest, 
+  party,
   onTogglePaid, 
   onRemove,
   isMultiSelectMode = false,
@@ -137,14 +139,50 @@ const GuestItem: React.FC<GuestItemProps> = ({
         <ViewShot
           ref={viewShotRef}
           options={{ format: 'png', quality: 1.0, result: 'tmpfile' }}
-          style={{ position: 'absolute', left: -9999, width: 300, height: 380, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', padding: 24, borderRadius: 20 }}
+          style={{ position: 'absolute', left: -9999, width: 350, height: 500, backgroundColor: colors.white, padding: 20, borderRadius: 20 }}
         >
-          <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.text.primary, marginBottom: 24, textAlign: 'center' }}>{guest.name}</Text>
-          <QRCode
-            value={guest.qrCode}
-            size={200}
-            backgroundColor={colors.white}
-          />
+          {/* Event Header */}
+          <View style={{ alignItems: 'center', marginBottom: 20 }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.primary, textAlign: 'center' }}>
+              {party.name}
+            </Text>
+            {party.startTime && (
+              <Text style={{ fontSize: 14, color: colors.text.secondary, marginTop: 4, textAlign: 'center' }}>
+                {new Date(party.startTime).toLocaleString('it-IT', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </Text>
+            )}
+          </View>
+
+          {/* Event Photo */}
+          {party.eventPhoto && (
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <Image 
+                source={{ uri: party.eventPhoto }}
+                style={{ width: 280, height: 80, borderRadius: 10 }}
+                resizeMode="cover"
+              />
+            </View>
+          )}
+
+          {/* Guest Name */}
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.text.primary, marginBottom: 16, textAlign: 'center' }}>
+            {guest.name}
+          </Text>
+
+          {/* QR Code */}
+          <View style={{ alignItems: 'center' }}>
+            <QRCode
+              value={guest.qrCode}
+              size={180}
+              backgroundColor={colors.white}
+            />
+          </View>
         </ViewShot>
 
         {guest.scanned && (

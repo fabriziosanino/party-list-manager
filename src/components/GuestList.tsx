@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
-import { Guest } from '../types';
+import { Guest, Party } from '../types';
 import GuestItem from './GuestItem';
 import { colors, spacing, typography } from '../constants/styles';
 
 interface GuestListProps {
   guests: Guest[];
+  party: Party;
   onTogglePaid: (id: number) => void;
   onRemoveGuest: (id: number) => void;
   isSearching?: boolean;
@@ -18,6 +19,7 @@ interface GuestListProps {
 
 const GuestList: React.FC<GuestListProps> = ({ 
   guests, 
+  party,
   onTogglePaid, 
   onRemoveGuest,
   isSearching = false,
@@ -80,6 +82,7 @@ const GuestList: React.FC<GuestListProps> = ({
           <GuestItem
             key={guest.id}
             guest={guest}
+            party={party}
             onTogglePaid={onTogglePaid}
             onRemove={handleRemoveGuest}
             isMultiSelectMode={isMultiSelectMode}

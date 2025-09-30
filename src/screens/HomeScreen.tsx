@@ -11,6 +11,7 @@ import {
   TextInput,
   PanResponder,
   Dimensions,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Guest, NewGuest, ScanResult, Party, GuestList as GuestListType } from '../types';
@@ -41,6 +42,7 @@ import StatsCard from '../components/StatsCard';
 import GuestsByList from '../components/GuestsByList';
 import AddGuestModal from '../components/AddGuestModal';
 import GuestListModal from '../components/GuestListModal';
+import EventConfigModal from '../components/EventConfigModal';
 import Scanner from '../components/Scanner';
 
 import { colors, spacing, typography, borderRadius, globalStyles } from '../constants/styles';
@@ -56,6 +58,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showGuestListModal, setShowGuestListModal] = useState(false);
+  const [showEventConfigModal, setShowEventConfigModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -170,6 +173,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
     });
     
     setGuests(prev => [...prev, guest]);
+  };
+
+  const handleUpdateEventConfig = async (updatedParty: Party) => {
+    try {
+      await saveParty(updatedParty);
+      // Aggiorna il party nel componente padre se necessario
+      // onBackToParties(); // Potremmo dover ricaricare la lista
+      Alert.alert('Successo', 'Configurazione evento aggiornata');
+    } catch (error) {
+      console.error('Errore nel salvare la configurazione:', error);
+      Alert.alert('Errore', 'Impossibile salvare la configurazione dell\'evento');
+    }
   };
 
   const handleSaveGuestLists = async (lists: GuestListType[]) => {
@@ -437,10 +452,38 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
     <SafeAreaView style={globalStyles.container} {...panResponder.panHandlers}>
       {/* Header */}
       <View style={globalStyles.header}>
-        <Text style={globalStyles.headerTitle}>{party.name}</Text>
-        <Text style={styles.partyCodeText}>
-          Codice: {party.code}
-        </Text>
+        <View style={styles.headerContent}>
+          <View style={styles.headerTextContainer}>
+            <Text style={globalStyles.headerTitle}>{party.name}</Text>
+            <Text style={styles.partyCodeText}>
+              Codice: {party.code}
+            </Text>
+            {party.startTime && (
+              <Text style={styles.startTimeText}>
+                Inizio: {new Date(party.startTime).toLocaleString('it-IT', {
+                  day: '2-digit',
+                  month: '2-digit', 
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity 
+            style={styles.configButton}
+            onPress={() => setShowEventConfigModal(true)}
+          >
+            <Ionicons name="settings-outline" size={24} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+        {party.eventPhoto && (
+          <Image 
+            source={{ uri: party.eventPhoto }} 
+            style={styles.eventPhoto}
+            resizeMode="cover"
+          />
+        )}
       </View>
 
       {/* Stats */}
@@ -552,6 +595,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
       {/* Guest List */}
       <GuestsByList
         guests={filteredGuests}
+        party={party}
         guestLists={guestLists}
         searchQuery={searchQuery}
         selectedGuests={selectedGuests}
@@ -577,6 +621,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
         partyId={party.id}
         guestLists={guestLists}
         onSaveGuestLists={handleSaveGuestLists}
+      />
+
+      {/* Event Configuration Modal */}
+      <EventConfigModal
+        visible={showEventConfigModal}
+        onClose={() => setShowEventConfigModal(false)}
+        party={party}
+        onUpdateParty={handleUpdateEventConfig}
       />
 
       <Scanner
@@ -755,6 +807,32 @@ const styles = StyleSheet.create({
   },
   shareButtonTextDisabled: {
     color: colors.gray[400],
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  startTimeText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+  },
+  configButton: {
+    padding: spacing.xs,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background.card,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  eventPhoto: {
+    width: '100%',
+    height: 120,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.md,
   },
 });
 
