@@ -17,27 +17,27 @@
     "update": "eas update"
   },
   "dependencies": {
-    "@expo/vector-icons": "^14.0.0",
-    "@react-native-async-storage/async-storage": "2.1.2",
-    "expo": "53.0.22",
-    "expo-camera": "~16.1.11",
-    "expo-document-picker": "13.1.6",
-    "expo-file-system": "^18.1.11",
-    "expo-font": "~13.3.2",
-    "expo-sharing": "^13.1.5",
-    "expo-status-bar": "2.2.3",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "~54.0.0",
+    "expo-camera": "~17.0.8",
+    "expo-document-picker": "~14.0.7",
+    "expo-file-system": "~19.0.15",
+    "expo-font": "~14.0.8",
+    "expo-sharing": "~14.0.7",
+    "expo-status-bar": "~3.0.8",
     "prop-types": "^15.8.1",
-    "react": "19.0.0",
-    "react-native": "0.79.5",
+    "react": "19.1.0",
+    "react-native": "0.81.4",
     "react-native-qrcode-svg": "^6.3.15",
     "react-native-share": "^12.2.0",
-    "react-native-svg": "15.11.2",
+    "react-native-svg": "15.12.1",
     "react-native-view-shot": "^4.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "@types/react": "~19.0.10",
-    "typescript": "~5.8.3"
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2"
   },
   "private": true
 }

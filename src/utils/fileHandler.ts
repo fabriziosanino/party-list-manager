@@ -156,11 +156,11 @@ export const exportQRCodes = async (guests: Guest[]): Promise<boolean> => {
 
     const csvContent = csvHeader + csvRows;
     const fileName = `qr_codes_festa_${formatDateForFileName(new Date())}.csv`;
-    const fileUri = FileSystem.documentDirectory + fileName;
+    // Use a safe fallback directory path
+    const baseDir = (FileSystem as any).cacheDirectory || (FileSystem as any).documentDirectory || '';
+    const fileUri = baseDir + fileName;
 
-    await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+    await FileSystem.writeAsStringAsync(fileUri, csvContent);
 
     const canShare = await Sharing.isAvailableAsync();
     if (canShare) {
@@ -187,11 +187,10 @@ export const exportPartyReport = async (guests: Guest[]): Promise<boolean> => {
     const reportContent = generateReportContent(guests, stats);
     
     const fileName = `report_festa_${formatDateForFileName(new Date())}.txt`;
-    const fileUri = FileSystem.documentDirectory + fileName;
+    const baseDir = (FileSystem as any).documentDirectory || (FileSystem as any).cacheDirectory || '';
+    const fileUri = baseDir + fileName;
 
-    await FileSystem.writeAsStringAsync(fileUri, reportContent, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+    await FileSystem.writeAsStringAsync(fileUri, reportContent);
 
     const canShare = await Sharing.isAvailableAsync();
     if (canShare) {

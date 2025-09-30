@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   TextInput,
   FlatList,
   SafeAreaView,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GuestList } from '../types';
@@ -32,6 +35,7 @@ const GuestListModal: React.FC<GuestListModalProps> = ({
   const [localLists, setLocalLists] = useState<GuestList[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     setLocalLists(guestLists);
@@ -46,9 +50,14 @@ const GuestListModal: React.FC<GuestListModalProps> = ({
       createdAt: new Date().toISOString(),
       guestCount: 0,
     };
-    setLocalLists(prev => [...prev, newList]);
-    setEditingId(newList.id);
-    setEditingName(newList.name);
+    setLocalLists(prev => {
+      const updatedLists = [...prev, newList];
+      // Usa setTimeout per permettere al state di aggiornarsi prima di fare lo scroll
+      setTimeout(() => {
+        handleStartEditing(newList.id, newList.name);
+      }, 50);
+      return updatedLists;
+    });
   };
 
   const handleDeleteList = (listId: string) => {
@@ -90,6 +99,23 @@ const GuestListModal: React.FC<GuestListModalProps> = ({
     onClose();
   };
 
+  const handleStartEditing = (itemId: string, itemName: string) => {
+    setEditingId(itemId);
+    setEditingName(itemName);
+    
+    // Scroll automatico all'elemento in modifica dopo un breve delay per permettere al TextInput di renderizzarsi
+    setTimeout(() => {
+      const itemIndex = localLists.findIndex(list => list.id === itemId);
+      if (itemIndex !== -1 && flatListRef.current) {
+        flatListRef.current.scrollToIndex({
+          index: itemIndex,
+          animated: true,
+          viewPosition: 0.5, // Centra l'elemento nella view
+        });
+      }
+    }, 100);
+  };
+
   const renderListItem = ({ item }: { item: GuestList }) => (
     <View style={styles.listItem}>
       {editingId === item.id ? (
@@ -105,10 +131,7 @@ const GuestListModal: React.FC<GuestListModalProps> = ({
       ) : (
         <TouchableOpacity
           style={styles.nameContainer}
-          onPress={() => {
-            setEditingId(item.id);
-            setEditingName(item.name);
-          }}
+          onPress={() => handleStartEditing(item.id, item.name)}
         >
           <Text style={styles.listName}>{item.name}</Text>
         </TouchableOpacity>
@@ -132,23 +155,39 @@ const GuestListModal: React.FC<GuestListModalProps> = ({
       presentationStyle="pageSheet"
     >
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.cancelText}>Annulla</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Gestisci Liste</Text>
-          <TouchableOpacity onPress={handleSave}>
-            <Text style={styles.saveText}>Salva</Text>
-          </TouchableOpacity>
-        </View>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardContainer}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.cancelText}>Annulla</Text>
+            </TouchableOpacity>
+            <Text style={styles.title}>Gestisci Liste</Text>
+            <TouchableOpacity onPress={handleSave}>
+              <Text style={styles.saveText}>Salva</Text>
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.content}>
+          <View style={styles.content}>
           <FlatList
+            ref={flatListRef}
             data={localLists}
             renderItem={renderListItem}
             keyExtractor={(item) => item.id}
             style={styles.listContainer}
             showsVerticalScrollIndicator={false}
+            onScrollToIndexFailed={(info) => {
+              // Fallback: scorri alla fine se l'indice non è valido
+              const wait = new Promise(resolve => setTimeout(resolve, 500));
+              wait.then(() => {
+                flatListRef.current?.scrollToIndex({ 
+                  index: info.index, 
+                  animated: true,
+                  viewPosition: 0.5 
+                });
+              });
+            }}
           />
 
           <TouchableOpacity style={styles.addButton} onPress={handleAddList}>
@@ -156,6 +195,7 @@ const GuestListModal: React.FC<GuestListModalProps> = ({
             <Text style={styles.addButtonText}>Aggiungi Nuova Lista</Text>
           </TouchableOpacity>
         </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
@@ -165,6 +205,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
