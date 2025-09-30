@@ -160,11 +160,19 @@ const GuestListModal: React.FC<GuestListModalProps> = ({
           style={styles.keyboardContainer}
         >
           <View style={styles.header}>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity 
+              onPress={onClose}
+              style={styles.headerButton}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
               <Text style={styles.cancelText}>Annulla</Text>
             </TouchableOpacity>
             <Text style={styles.title}>Gestisci Liste</Text>
-            <TouchableOpacity onPress={handleSave}>
+            <TouchableOpacity 
+              onPress={handleSave}
+              style={styles.headerButton}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
               <Text style={styles.saveText}>Salva</Text>
             </TouchableOpacity>
           </View>
@@ -311,6 +319,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
+  },
+  headerButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    minWidth: 60,
+    alignItems: 'center',
   },
 });
 
