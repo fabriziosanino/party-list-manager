@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { Party } from '../types';
 import { colors, spacing, typography, borderRadius, shadows } from '../constants/styles';
 
@@ -54,19 +55,75 @@ const EventConfigModal: React.FC<EventConfigModalProps> = ({
   };
 
   const handleSelectPhoto = () => {
-    // Per ora mostra un alert che spiega come implementare
-    Alert.alert(
-      'Selezione Foto',
-      'Funzionalità in sviluppo. Sarà possibile selezionare una foto dalla galleria o scattarne una nuova.',
-      [
-        { text: 'OK', style: 'default' },
-        {
-          text: 'Rimuovi Foto Attuale',
-          style: 'destructive',
-          onPress: () => setEventPhoto(''),
-        },
-      ]
-    );
+    const options: any[] = [
+      {
+        text: 'Fotocamera',
+        onPress: () => takePicture(),
+      },
+      {
+        text: 'Galleria',
+        onPress: () => pickImage(),
+      },
+    ];
+
+    if (eventPhoto) {
+      options.push({
+        text: 'Rimuovi Foto',
+        style: 'destructive',
+        onPress: () => setEventPhoto(''),
+      });
+    }
+
+    options.push({ text: 'Annulla', style: 'cancel' });
+
+    Alert.alert('Seleziona Foto Evento', 'Scegli come aggiungere una foto per l\'evento:', options);
+  };
+
+  const requestPermissions = async () => {
+    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+    const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    return { cameraStatus, libraryStatus };
+  };
+
+  const takePicture = async () => {
+    const { cameraStatus } = await requestPermissions();
+    
+    if (cameraStatus !== 'granted') {
+      Alert.alert('Permesso Necessario', 'È necessario il permesso della fotocamera per scattare foto.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setEventPhoto(result.assets[0].uri);
+    }
+  };
+
+  const pickImage = async () => {
+    const { libraryStatus } = await requestPermissions();
+    
+    if (libraryStatus !== 'granted') {
+      Alert.alert('Permesso Necessario', 'È necessario il permesso di accesso alla galleria per selezionare foto.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setEventPhoto(result.assets[0].uri);
+    }
   };
 
   const formatDate = (date: Date) => {

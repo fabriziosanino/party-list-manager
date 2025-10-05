@@ -115,7 +115,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
       ]);
       
       // Migra QR code esistenti al nuovo formato sicuro
-      const migratedGuests = migrateQRCodes(savedGuests, party.code, savedGuestLists);
+      const migratedGuests = migrateQRCodes(savedGuests, party.code, savedGuestLists, party);
       
       // Se sono stati migrati dei QR code, salva i dati aggiornati
       if (JSON.stringify(savedGuests) !== JSON.stringify(migratedGuests)) {
@@ -169,7 +169,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
       name: guest.name, 
       partyCode: party.code,
       listId: newGuest.listId,
-      listName: guestList?.name
+      listName: guestList?.name,
+      partyName: party.name,
+      eventPhoto: party.eventPhoto,
+      startTime: party.startTime,
     });
     
     setGuests(prev => [...prev, guest]);
@@ -178,9 +181,28 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
   const handleUpdateEventConfig = async (updatedParty: Party) => {
     try {
       await saveParty(updatedParty);
-      // Aggiorna il party nel componente padre se necessario
-      // onBackToParties(); // Potremmo dover ricaricare la lista
-      Alert.alert('Successo', 'Configurazione evento aggiornata');
+      
+      // Rigenera i QR code per includere le nuove informazioni dell'evento
+      const updatedGuests = guests.map(guest => {
+        const guestList = guestLists.find(list => list.id === guest.listId);
+        return {
+          ...guest,
+          qrCode: generateQRCode({
+            id: guest.id,
+            name: guest.name,
+            partyCode: updatedParty.code,
+            listId: guest.listId,
+            listName: guestList?.name,
+            partyName: updatedParty.name,
+            eventPhoto: updatedParty.eventPhoto,
+            startTime: updatedParty.startTime,
+          })
+        };
+      });
+      
+      setGuests(updatedGuests);
+      
+      Alert.alert('Successo', 'Configurazione evento aggiornata e QR code rigenerati');
     } catch (error) {
       console.error('Errore nel salvare la configurazione:', error);
       Alert.alert('Errore', 'Impossibile salvare la configurazione dell\'evento');
@@ -458,7 +480,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
             <Text style={styles.partyCodeText}>
               Codice: {party.code}
             </Text>
-            {party.startTime && (
+            {party.startTime ? (
               <Text style={styles.startTimeText}>
                 Inizio: {new Date(party.startTime).toLocaleString('it-IT', {
                   day: '2-digit',
@@ -468,21 +490,34 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ party, onBackToParties }) => {
                   minute: '2-digit'
                 })}
               </Text>
+            ) : (
+              <Text style={styles.noTimeText}>
+                Tocca ⚙️ per impostare orario e foto
+              </Text>
             )}
           </View>
-          <TouchableOpacity 
-            style={styles.configButton}
-            onPress={() => setShowEventConfigModal(true)}
-          >
-            <Ionicons name="settings-outline" size={24} color={colors.primary} />
-          </TouchableOpacity>
+          <View style={styles.configButtonContainer}>
+            <TouchableOpacity 
+              style={styles.configButton}
+              onPress={() => setShowEventConfigModal(true)}
+            >
+              <Ionicons name="settings-outline" size={24} color={colors.white} />
+            </TouchableOpacity>
+            <Text style={styles.configButtonLabel}>Configura</Text>
+          </View>
         </View>
-        {party.eventPhoto && (
+        {party.eventPhoto ? (
           <Image 
             source={{ uri: party.eventPhoto }} 
             style={styles.eventPhoto}
             resizeMode="cover"
           />
+        ) : (
+          <View style={styles.noImagePlaceholder}>
+            <Ionicons name="image-outline" size={32} color={colors.text.muted} />
+            <Text style={styles.noImageText}>Nessuna foto evento</Text>
+            <Text style={styles.noImageHint}>Tocca "Configura" per aggiungerne una</Text>
+          </View>
         )}
       </View>
 
@@ -822,17 +857,63 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   configButton: {
-    padding: spacing.xs,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.card,
+    padding: spacing.sm,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary,
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   eventPhoto: {
     width: '100%',
     height: 120,
     borderRadius: borderRadius.md,
     marginTop: spacing.md,
+  },
+  noTimeText: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.muted,
+    marginTop: spacing.xs,
+    fontStyle: 'italic',
+  },
+  configButtonContainer: {
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  configButtonLabel: {
+    fontSize: typography.sizes.xs,
+    color: colors.primary,
+    fontWeight: typography.weights.medium,
+  },
+  noImagePlaceholder: {
+    width: '100%',
+    height: 120,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.md,
+    backgroundColor: colors.gray[50],
+    borderWidth: 2,
+    borderColor: colors.border.light,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  noImageText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.muted,
+    fontWeight: typography.weights.medium,
+  },
+  noImageHint: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.muted,
+    textAlign: 'center',
   },
 });
 
